@@ -2,6 +2,9 @@ import PyPDF2
 import tkinter
 from tkinter import filedialog
 import cv2
+from fpdf import FPDF
+from imwatermark import WatermarkEncoder, WatermarkDecoder
+from pdf2image import convert_from_path
 
 
 def watermarkingImage():
@@ -93,14 +96,71 @@ def watermarkingPDF():
 
     root.destroy()
 
+def invisiblewatermarkingPDF():
+    print("\nSelect your pdf to be watermarked\n")
+
+    root = tkinter.Tk()  # pointing root to Tk() to use it as Tk() in program. >>>
+    root.withdraw()  # Hides small tkinter window.
+    root.attributes('-topmost', True)
+    open_file = convert_from_path(filedialog.askopenfilename(),
+                                  poppler_path=r'F:\Watermark Python\poppler-0.68.0\bin')
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(0)
+    img_list = []
+    for i in range(len(open_file)):
+        # Save pages as images in the pdf
+        open_file[i].save('page' + str(i) + '.jpg', 'JPEG')
+
+        bgr = cv2.imread('page'+str(i)+'.jpg')
+        wm = 'Watermark'
+
+        encoder = WatermarkEncoder()
+        encoder.set_watermark('bytes', wm.encode('utf-8'))
+        bgr_encoded = encoder.encode(bgr, 'dwtDct')
+
+        cv2.imwrite('wmpage'+str(i)+'.jpg', bgr_encoded)
+        img_list.append('wmpage'+str(i)+'.jpg')
+
+    for img in img_list:
+        pdf.add_page()
+        pdf.image(img,w=130,h=200)
+
+    pdf.output("invwatermarked.pdf")
+
+def decodeinvisiblewatermarkingPDF():
+    print("\nSelect your pdf to be watermarked\n")
+
+    root = tkinter.Tk()  # pointing root to Tk() to use it as Tk() in program. >>>
+    root.withdraw()  # Hides small tkinter window.
+    root.attributes('-topmost', True)
+    open_file = convert_from_path(filedialog.askopenfilename(),
+                                  poppler_path=r'F:\Watermark Python\poppler-0.68.0\bin')
+
+    for i in range(len(open_file)):
+        # Save pages as images in the pdf
+
+        bgr = cv2.imread('wmpage'+str(i)+'.jpg')
+        decoder = WatermarkDecoder('bytes', 32)
+        watermark = decoder.decode(bgr, 'dwtDct')
+        print(watermark.decode('utf-8'))
+
+
+
 
 if __name__ == '__main__':
 
     while True:
-        print('\nYou need to watermark:\n1)Image\n2)PDF\n')
+        print('\nYou need to watermark:\n1)Image\n2)PDF\n3)Invisible Watermark\n4)Decoding inv.watermarked file\n')
 
         choice = int(input())
         if choice == 1:
             watermarkingImage()
-        else:
+        elif choice == 2:
             watermarkingPDF()
+        elif choice == 3:
+            invisiblewatermarkingPDF()
+        else :
+            decodeinvisiblewatermarkingPDF()
+
+
